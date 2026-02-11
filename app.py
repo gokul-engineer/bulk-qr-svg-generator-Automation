@@ -134,3 +134,25 @@ try:
     st.write("🚀 Total Generates:", counter_data["generate"])
 except:
     st.warning("Counter unavailable.")
+
+
+# -----------------------------
+# 👤 Developer Profile Section
+# -----------------------------
+
+st.markdown("---")
+st.markdown("### 👨‍💻 Developer Profile")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("🔗 **GitHub Repository:**")
+    st.write(f"https://github.com/{GITHUB_REPO}")
+
+with col2:
+    github_username = GITHUB_REPO.split("/")[0]
+    st.write("👤 **GitHub Profile:**")
+    st.write(f"https://github.com/{github_username}")
+
+st.markdown("💡 Built with ❤️ using Streamlit")
+
