@@ -55,6 +55,7 @@ def update_counter(new_data, sha):
 # -----------------------------
 
 st.set_page_config(page_title="Bulk QR Code Generator (SVG)", layout="centered")
+st.markdown("### 👨‍💻 Developed by Gokul K")
 st.title("🎯 Bulk QR Code Generator")
 
 with st.expander("🧾 Sample Excel Format"):
