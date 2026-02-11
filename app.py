@@ -4,11 +4,59 @@ import qrcode
 import svgwrite
 import zipfile
 import io
+import requests
+import base64
+import json
+
+# -----------------------------
+# 🔐 GitHub Config (from secrets)
+# -----------------------------
+
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+GITHUB_REPO = st.secrets["GITHUB_REPO"]
+COUNTER_FILE_PATH = st.secrets["COUNTER_FILE_PATH"]
+
+HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json"
+}
+
+# -----------------------------
+# 📂 GitHub Counter Functions
+# -----------------------------
+
+def get_counter():
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{COUNTER_FILE_PATH}"
+    response = requests.get(url, headers=HEADERS)
+    data = response.json()
+
+    content = base64.b64decode(data["content"]).decode("utf-8")
+    counter_data = json.loads(content)
+
+    return counter_data, data["sha"]
+
+def update_counter(new_data, sha):
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{COUNTER_FILE_PATH}"
+
+    encoded_content = base64.b64encode(
+        json.dumps(new_data, indent=2).encode("utf-8")
+    ).decode("utf-8")
+
+    payload = {
+        "message": "Update generate counter",
+        "content": encoded_content,
+        "sha": sha
+    }
+
+    requests.put(url, headers=HEADERS, json=payload)
+
+# -----------------------------
+# 🎯 Streamlit App
+# -----------------------------
 
 st.set_page_config(page_title="Bulk QR Code Generator (SVG)", layout="centered")
 st.title("🎯 Bulk QR Code Generator")
 
-# 🔍 Sample Input Format - shown upfront
 with st.expander("🧾 Sample Excel Format"):
     st.dataframe(pd.DataFrame({
         "URL": ["https://www.google.com", "https://youtube.com"],
@@ -23,11 +71,16 @@ if uploaded_file:
     if not {'A', 'B'}.issubset(df.columns) and not {'Name', 'URL'}.issubset(df.columns):
         st.error("Excel must have either:\n- Columns A & B\n- or columns named 'Name' and 'URL'")
     else:
-        # Allow either column style
         col1 = df.columns[0]
         col2 = df.columns[1]
 
         if st.button("🚀 Generate QR Codes as SVG"):
+
+            # 🔥 Update GitHub Counter
+            counter_data, sha = get_counter()
+            counter_data["generate"] += 1
+            update_counter(counter_data, sha)
+
             zip_buffer = io.BytesIO()
 
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED) as zip_file:
@@ -70,18 +123,14 @@ if uploaded_file:
                 mime="application/zip"
             )
 
-# 🔗 GitHub links with icon badges
-st.markdown("---")
-st.markdown(
-    """
-    <div style='text-align: center;'>
-        <a href="https://github.com/gokul-engineer/bulk-qr-svg-generator-Automation" target="_blank">
-            <img src="https://img.shields.io/badge/🔗%20Project%20Repo-Visit-blue?style=for-the-badge" alt="Project Repo">
-        </a>
-        <a href="https://github.com/gokul-engineer" target="_blank">
-            <img src="https://img.shields.io/badge/👨‍💻%20My%20GitHub%20Profile-gokul--engineer-black?style=for-the-badge" alt="GitHub Profile">
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# -----------------------------
+# 📊 Show Current Global Count
+# -----------------------------
+
+try:
+    counter_data, _ = get_counter()
+    st.markdown("---")
+    st.markdown("### 📊 Total Generate Button Clicks (Global)")
+    st.write("🚀 Total Generates:", counter_data["generate"])
+except:
+    st.warning("Counter unavailable.")
